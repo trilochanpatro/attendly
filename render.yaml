@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: attendly
+    env: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: attendly-production-secret
