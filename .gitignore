@@ -1,0 +1,12 @@
+# Ignore node modules and build outputs
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+frontend/dist/
+backend/database.db
+*.local
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
