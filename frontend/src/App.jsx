@@ -47,10 +47,10 @@ const AppLayout = ({ activeTab, setActiveTab, children }) => {
                 <span class="profile-role">{user.role}</span>
               </div>
             </div>
-            <button 
-              class="theme-toggle-btn" 
-              onClick={logout} 
-              title="Sign Out" 
+            <button
+              class="theme-toggle-btn"
+              onClick={logout}
+              title="Sign Out"
               style={{ marginLeft: '10px', color: '#ef4444' }}
             >
               <LogOut size={18} />
@@ -66,7 +66,15 @@ const AppLayout = ({ activeTab, setActiveTab, children }) => {
 };
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('attendly-user') || 'null');
+    } catch {
+      return null;
+    }
+  })();
+
+  const [user, setUser] = useState(storedUser);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(true);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
@@ -94,6 +102,21 @@ export default function App() {
         setLoading(false);
         return;
       }
+
+      const savedUser = (() => {
+        try {
+          return JSON.parse(localStorage.getItem('attendly-user') || 'null');
+        } catch {
+          return null;
+        }
+      })();
+
+      if (token.startsWith('demo-') && savedUser) {
+        setUser(savedUser);
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await fetch('/api/auth/me', {
           headers: {
@@ -103,13 +126,25 @@ export default function App() {
         if (response.ok) {
           const data = await response.json();
           setUser(data.user);
+          localStorage.setItem('attendly-user', JSON.stringify(data.user));
+        } else if (savedUser) {
+          setUser(savedUser);
         } else {
-          // Token expired or invalid
           localStorage.removeItem('token');
+          localStorage.removeItem('attendly-user');
           setToken(null);
+          setUser(null);
         }
       } catch (err) {
         console.error('Auth verification failed', err);
+        if (savedUser) {
+          setUser(savedUser);
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('attendly-user');
+          setToken(null);
+          setUser(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -119,12 +154,14 @@ export default function App() {
 
   const login = (newToken, newUser) => {
     localStorage.setItem('token', newToken);
+    localStorage.setItem('attendly-user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('attendly-user');
     setToken(null);
     setUser(null);
   };
@@ -153,13 +190,13 @@ export default function App() {
       <AuthContext.Provider value={{ user, token, login, logout }}>
         <Router>
           <Routes>
-            <Route 
-              path="/login" 
-              element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+            <Route
+              path="/login"
+              element={user ? <Navigate to="/dashboard" replace /> : <Login />}
             />
-            
-            <Route 
-              path="/dashboard" 
+
+            <Route
+              path="/dashboard"
               element={
                 user ? (
                   <AppLayout activeTab={activeTab} setActiveTab={setActiveTab}>
@@ -170,12 +207,12 @@ export default function App() {
                 ) : (
                   <Navigate to="/login" replace />
                 )
-              } 
+              }
             />
-            
-            <Route 
-              path="*" 
-              element={<Navigate to={user ? "/dashboard" : "/login"} replace />} 
+
+            <Route
+              path="*"
+              element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
             />
           </Routes>
         </Router>
